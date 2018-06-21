@@ -1,0 +1,43 @@
+PermitRootLogin No
+
+% if node.metadata.get('openssh', {}).get('port', False):
+Port ${node.metadata['openssh']['port']}
+% endif
+Protocol 2
+
+# save algorithms ath ciphers
+KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
+
+AuthorizedKeysFile      .ssh/authorized_keys
+GSSAPIAuthentication no
+HostbasedAuthentication no
+KerberosAuthentication no
+% if node.metadata.get('openssh', {}).get('password_auth', False):
+PasswordAuthentication yes
+ChallengeResponseAuthentication yes
+% else:
+PasswordAuthentication no
+ChallengeResponseAuthentication no
+% endif
+% if node.metadata.get('openssh', {}).get('gateway_ports', False):
+GatewayPorts yes
+% endif
+PubkeyAuthentication yes
+RhostsRSAAuthentication no
+RSAAuthentication no
+UsePAM no
+UseDNS no
+PrintMotd yes
+
+% if node.in_group("ubuntu"):
+Subsystem sftp internal-sftp
+
+Match Group sftp
+        ChrootDirectory %h
+        ForceCommand internal-sftp
+        AllowTcpForwarding no
+% else:
+Subsystem sftp /usr/lib/openssh/sftp-server
+% endif
