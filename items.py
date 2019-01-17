@@ -1,4 +1,4 @@
-pkg_apt = {
+pkg = {
     "openssh-server": {},
 }
 
@@ -9,7 +9,7 @@ files = {
         'mode': "0600",
         'owner': "root",
         'group': "root",
-        'needs': ['pkg_apt:openssh-server'],
+        'needs': ['pkg:openssh-server'],
     }
 }
 
