@@ -9,7 +9,7 @@ def add_iptables_rule(metadata):
                 input(interface). \
                 state_new(). \
                 tcp(). \
-                dest_port(metadata['openssl']['port'] if metadata.get('openssl', {}).get('port', False) else '22')
+                dest_port(metadata['openssl']['port'] if metadata.get('openssh', {}).get('port', False) else '22')
 
     return metadata, DONE
 
