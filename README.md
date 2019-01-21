@@ -6,7 +6,7 @@ This module installes Openssh. It also installes firewall rules and check_mk tas
 Demo Metadata
 -------------
 
-These metadata keys are used
+These metadata keys are used, but all optional
 
 ```python
 'users': {
@@ -18,7 +18,7 @@ These metadata keys are used
     },
 },
 'openssh': {
-    'additional_interfaces': ['private'],
+    'additional_interfaces': ['private'], # Optional
     'port': 22, # Optional
     'password_auth': False, # Optional
     'gateway_ports': False, # Optional
