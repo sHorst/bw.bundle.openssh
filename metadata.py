@@ -9,7 +9,7 @@ def add_iptables_rule(metadata):
                 input(interface). \
                 state_new(). \
                 tcp(). \
-                dest_port(metadata['openssl']['port'] if metadata.get('openssl', {}).get('port', False) else '22')
+                dest_port(metadata.get('openssh', {}).get('port', 22))
 
     return metadata, DONE
 
@@ -19,7 +19,7 @@ def add_check_mk_tags(metadata):
     if node.has_bundle('check_mk_agent'):
         metadata.setdefault('check_mk', {})
         metadata['check_mk'].setdefault('tags', [])
-        tag = 'ssh{}'.format(metadata.get('openssl', {}).get('port', ''))
+        tag = 'ssh{}'.format(metadata.get('openssh', {}).get('port', ''))
 
         metadata['check_mk']['tags'] += [tag, ]
 
@@ -32,8 +32,8 @@ def add_check_mk_test(metadata):
         if not metadata.get('check_mk', {}).get('servers', []):
             return metadata, RUN_ME_AGAIN
 
-        tag = 'ssh{}'.format(metadata.get('openssl', {}).get('port', ''))
-        port = metadata.get('openssl', {}).get('port', 22)
+        tag = 'ssh{}'.format(metadata.get('openssh', {}).get('port', ''))
+        port = metadata.get('openssh', {}).get('port', 22)
 
         for check_mk_server_name in metadata['check_mk']['servers']:
             check_mk_server = repo.get_node(check_mk_server_name)
