@@ -41,3 +41,9 @@ Match Group sftp
 % else:
 Subsystem sftp /usr/lib/openssh/sftp-server
 % endif
+% if node.metadata.get('openssh', {}).get('x11', False):
+
+X11Forwarding yes
+X11DisplayOffset 10
+
+% endif
