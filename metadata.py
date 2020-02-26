@@ -18,10 +18,10 @@ def add_iptables_rule(metadata):
 def add_check_mk_tags(metadata):
     if node.has_bundle('check_mk_agent'):
         metadata.setdefault('check_mk', {})
-        metadata['check_mk'].setdefault('tags', [])
+        metadata['check_mk'].setdefault('tags', {})
         tag = 'ssh{}'.format(metadata.get('openssh', {}).get('port', ''))
 
-        metadata['check_mk']['tags'] += [tag, ]
+        metadata['check_mk']['tags']['ssh'] = tag
 
     return metadata, DONE
 
@@ -48,17 +48,21 @@ def add_check_mk_test(metadata):
                 setdefault('ssh', [])
 
             for active_checks in check_mk_server.partial_metadata['check_mk']['global_rules']['active_checks']['ssh']:
-                if tag in active_checks[1]:
+                if tag in list(active_checks.get('condition', {}).get('host_tags', {}).keys()):
                     break
             else:
                 config = {}
                 description = 'Check SSH Service'
                 if port != 22:
                     config['port'] = port
-                    description = 'Check SSH Service on Port {}'.format(port)
+                    description += ' on Port {}'.format(port)
 
                 check_mk_server.partial_metadata['check_mk']['global_rules']['active_checks']['ssh'] += [
-                    (config, [tag, ], 'ALL_HOSTS', {'description': description}),
+                    {
+                        'condition': {'host_tags': {tag: tag}},
+                        'options': {'description': description},
+                        'value': config
+                    },
                 ]
 
             # generate global host tags for ssh
@@ -85,7 +89,7 @@ def add_check_mk_test(metadata):
 
             check_mk_server.partial_metadata['check_mk']['host_groups']['ssh-servers'] = {
                 'description': 'SSH Server',
-                'tags': ['ssh'],
+                'condition': {'host_tags': {'ssh': 'ssh'}},
             }
 
     return metadata, DONE
