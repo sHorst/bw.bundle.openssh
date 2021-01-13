@@ -1,6 +1,17 @@
-pkg_apt = {
-    "openssh-server": {},
-}
+if node.os in node.OS_FAMILY_DEBIAN:
+    pkg_apt = {
+        "openssh-server": {
+            'tags': ['pkg_openssh-server'],
+        },
+    }
+elif node.os in node.OS_FAMILY_REDHAT or node.os == 'amazonlinux':
+    pkg_yum = {
+        'openssh-server': {
+            'tags': ['pkg_openssh-server'],
+        }
+    }
+else:
+    raise "{os} isn't supported by openssh-Bundle, yet.".format(os=node.os)
 
 files = {
     "/etc/ssh/sshd_config": {
@@ -9,7 +20,7 @@ files = {
         'mode': "0600",
         'owner': "root",
         'group': "root",
-        'needs': ['pkg_apt:openssh-server'],
+        'needs': ['tag:pkg_openssh-server'],
     }
 }
 
