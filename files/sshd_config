@@ -25,8 +25,6 @@ ChallengeResponseAuthentication no
 GatewayPorts yes
 % endif
 PubkeyAuthentication yes
-RhostsRSAAuthentication no
-RSAAuthentication no
 UsePAM no
 UseDNS no
 PrintMotd yes
@@ -40,4 +38,10 @@ Match Group sftp
         AllowTcpForwarding no
 % else:
 Subsystem sftp /usr/lib/openssh/sftp-server
+% endif
+% if node.metadata.get('openssh', {}).get('x11', False):
+
+X11Forwarding yes
+X11DisplayOffset 10
+
 % endif

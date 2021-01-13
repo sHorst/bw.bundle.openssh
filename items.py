@@ -22,9 +22,14 @@ for username, user_attrs in node.metadata.get('users', {}).items():
             'group': username,
             'mode': "0700",
         }
-        files["/home/{}/.ssh/authorized_keys".format(username)] = {
-            'content': "\n".join(user_attrs['ssh_pubkeys']) + "\n",
-            'owner': username,
-            'group': username,
-            'mode': "0600",
-        }
+        if 'ssh_pubkeys' in user_attrs.keys():
+            files["/home/{}/.ssh/authorized_keys".format(username)] = {
+                'content': "\n".join(user_attrs['ssh_pubkeys']) + "\n",
+                'owner': username,
+                'group': username,
+                'mode': "0600",
+            }
+        else:
+            files["/home/{}/.ssh/authorized_keys".format(username)] = {
+                'delete': True,
+            }
