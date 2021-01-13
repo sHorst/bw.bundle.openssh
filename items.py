@@ -1,4 +1,4 @@
-pkg = {
+pkg_apt = {
     "openssh-server": {},
 }
 
@@ -9,7 +9,7 @@ files = {
         'mode': "0600",
         'owner': "root",
         'group': "root",
-        'needs': ['pkg:openssh-server'],
+        'needs': ['pkg_apt:openssh-server'],
     }
 }
 
@@ -23,7 +23,7 @@ for username, user_attrs in node.metadata.get('users', {}).items():
             'mode': "0700",
         }
         files["/home/{}/.ssh/authorized_keys".format(username)] = {
-            'content': "\n".join(user_attrs.get('ssh_pubkeys', [])) + "\n",
+            'content': "\n".join(user_attrs['ssh_pubkeys']) + "\n",
             'owner': username,
             'group': username,
             'mode': "0600",
