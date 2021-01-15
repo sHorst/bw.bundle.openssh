@@ -10,8 +10,6 @@ elif node.os in node.OS_FAMILY_REDHAT or node.os == 'amazonlinux':
             'tags': ['pkg_openssh-server'],
         }
     }
-else:
-    raise "{os} isn't supported by openssh-Bundle, yet.".format(os=node.os)
 
 files = {
     "/etc/ssh/sshd_config": {
