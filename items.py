@@ -26,19 +26,22 @@ directories = {}
 
 for username, user_attrs in node.metadata.get('users', {}).items():
     if not user_attrs.get('delete', False):
-        directories["/home/{}/.ssh".format(username)] = {
+        home = user_attrs.get('home', f"/home/{username}")
+
+        directories[f'{home}/.ssh'] = {
             'owner': username,
             'group': username,
             'mode': "0700",
         }
         if 'ssh_pubkeys' in user_attrs.keys():
-            files["/home/{}/.ssh/authorized_keys".format(username)] = {
+            files[f"{home}/.ssh/authorized_keys"] = {
                 'content': "\n".join(user_attrs['ssh_pubkeys']) + "\n",
+                'content_type': 'text',
                 'owner': username,
                 'group': username,
                 'mode': "0600",
             }
         else:
-            files["/home/{}/.ssh/authorized_keys".format(username)] = {
+            files[f"{home}/.ssh/authorized_keys"] = {
                 'delete': True,
             }
