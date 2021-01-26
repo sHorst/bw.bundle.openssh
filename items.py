@@ -1,3 +1,11 @@
+
+def sort_pubkey(key):
+    try:
+        return key.split(' ')[2]
+    except IndexError:
+        return key
+
+
 if node.os in node.OS_FAMILY_DEBIAN:
     pkg_apt = {
         "openssh-server": {
@@ -35,7 +43,7 @@ for username, user_attrs in node.metadata.get('users', {}).items():
         }
         if 'ssh_pubkeys' in user_attrs.keys():
             files[f"{home}/.ssh/authorized_keys"] = {
-                'content': "\n".join(user_attrs['ssh_pubkeys']) + "\n",
+                'content': "\n".join(sorted(user_attrs['ssh_pubkeys'], key=sort_pubkey)) + "\n",
                 'content_type': 'text',
                 'owner': username,
                 'group': username,
