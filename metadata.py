@@ -1,3 +1,6 @@
+from uuid import uuid5, NAMESPACE_URL
+
+
 @metadata_reactor
 def add_iptables_rule(metadata):
     if not node.has_bundle("iptables"):
@@ -47,7 +50,7 @@ def add_check_mk_test(metadata):
 
     active_checks = {
         'ssh': [{
-            'id': tag,
+            'id': str(uuid5(NAMESPACE_URL, tag)),
             'condition': {'host_tags': {tag: tag}},
             'options': {'description': description},
             'value': config
@@ -72,6 +75,7 @@ def add_check_mk_test(metadata):
     host_groups = {
         'ssh-servers': {
             'description': 'SSH Server',
+            'id': '0da264c0-bc48-4f83-9161-4eca6c62100a',
             'condition': {'host_tags': {'ssh': 'ssh'}},
         }
     }
