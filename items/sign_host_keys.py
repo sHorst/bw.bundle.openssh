@@ -1,5 +1,6 @@
 import os.path
 from datetime import timedelta, datetime
+from pathlib import Path
 from tempfile import mkdtemp
 
 import bundlewrap.exceptions
@@ -7,6 +8,17 @@ from bundlewrap.items import Item
 from bundlewrap.utils.remote import PathInfo
 from sshkey_tools.cert import SSHCertificate
 from sshkey_tools.keys import PrivateKey, PublicKey
+
+
+# See https://stackoverflow.com/a/49782093
+def remove_dir_recursive(path):
+    directory = Path(path)
+    for item in directory.iterdir():
+        if item.is_dir():
+            os.rmdir(item)
+        else:
+            item.unlink()
+    directory.rmdir()
 
 
 class SignHostKeys(Item):
@@ -128,4 +140,4 @@ class SignHostKeys(Item):
             'root'
         )
 
-        os.removedirs(tmpdir)
+        remove_dir_recursive(tmpdir)
