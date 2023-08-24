@@ -21,9 +21,12 @@ Port ${node.metadata['openssh']['port']}
 #ListenAddress 0.0.0.0
 #ListenAddress ::
 
-#HostKey /etc/ssh/ssh_host_rsa_key
-#HostKey /etc/ssh/ssh_host_ecdsa_key
-#HostKey /etc/ssh/ssh_host_ed25519_key
+% if node.metadata.get('openssh', {}).get('sign_host_key', {}):
+% for key_format in node.metadata.get('openssh').get('sign_host_key').get('formats', ['ed25519', 'ecdsa']):
+HostKey /etc/ssh/ssh_host_${key_format}_key
+HostCertificate /etc/ssh/ssh_host_${key_format}_key-cert.pub
+% endfor
+% endif
 
 # Ciphers and keying
 #RekeyLimit default none
