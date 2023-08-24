@@ -1,8 +1,8 @@
 import os.path
 from datetime import timedelta, datetime
-from tempfile import gettempdir, mkdtemp
+from tempfile import mkdtemp
 
-from bundlewrap import bundle
+import bundlewrap.exceptions
 from bundlewrap.items import Item
 from bundlewrap.utils.remote import PathInfo
 from sshkey_tools.cert import SSHCertificate
@@ -45,7 +45,8 @@ class SignHostKeys(Item):
         return []
 
     def __repr__(self):
-        return "<Sign Host Key key_format:{} ca_path:{}>".format(self.attributes['key_format'], self.attributes['ca_path'])
+        return "<Sign Host Key key_format:{} ca_path:{}>".format(self.attributes['key_format'],
+                                                                 self.attributes['ca_path'])
 
     def cdict(self):
         return {
@@ -98,18 +99,24 @@ class SignHostKeys(Item):
             os.path.join('/', 'etc', 'ssh', f'ssh_host_{self.attributes.get("key_format")}_key.pub')
         )
 
+        if not os.path.exists(ca_file_local):
+            raise Exception("No SSH CA file: ", ca_file_local)
+
+        try:
+            ca = PrivateKey.from_file(ca_file_local, password=self.attributes.get('ca_password'))
+        except Exception as e:
+            raise bundlewrap.exceptions.BundleError("Can't decrypt SSH CA file.", e)
+
         # Download host_key and save to temporary cert_file
         self.node.download(host_key, pub_file_local)
-
-        ca = PrivateKey.from_file(ca_file_local, password=self.attributes.get('ca_password'))
 
         pubkey = PublicKey.from_file(host_key)
         cert = SSHCertificate.create(
             subject_pubkey=pubkey,
             ca_privkey=ca,
         )
-        cert.fields.valid_after=datetime.now()
-        cert.fields.valid_before=datetime.now() + timedelta(days=self.attributes.get('days_valid'))
+        cert.fields.valid_after = datetime.now()
+        cert.fields.valid_before = datetime.now() + timedelta(days=self.attributes.get('days_valid'))
         cert.sign()
         cert.to_file(filename=cert_file_local)
 
@@ -121,4 +128,4 @@ class SignHostKeys(Item):
             'root'
         )
 
-        return True
+        os.removedirs(tmpdir)
