@@ -1,10 +1,12 @@
-from tempfile import gettempdir
+import os.path
+from datetime import timedelta, datetime
+from tempfile import gettempdir, mkdtemp
 
+from bundlewrap import bundle
 from bundlewrap.items import Item
 from bundlewrap.utils.remote import PathInfo
 from sshkey_tools.cert import SSHCertificate
 from sshkey_tools.keys import PrivateKey, PublicKey
-from bundlewrap.repo import Repository
 
 
 class SignHostKeys(Item):
@@ -13,11 +15,14 @@ class SignHostKeys(Item):
     """
     BUNDLE_ATTRIBUTE_NAME = "sign_host_keys"
     NEEDS_STATIC = [
+        "pkg_apt:",
+        "pkg_pacman:",
+        "pkg_yum:",
+        "pkg_zypper:",
     ]
     ITEM_ATTRIBUTES = {
         'key_format': None,
         'ca_password': None,
-        'hostkey_file': None,
         'ca_path': None,
         'days_valid': 3650,
     }
@@ -27,6 +32,9 @@ class SignHostKeys(Item):
         'ca_password',
         'ca_path',
     ]
+
+    def get_cert_path(self):
+        return os.path.join('/', 'etc', 'ssh', f'ssh_host_{self.attributes.get("key_format")}_key-cert.pub')
 
     @classmethod
     def block_concurrent(cls, node_os, node_os_version):
@@ -40,16 +48,14 @@ class SignHostKeys(Item):
         return "<Sign Host Key key_format:{} ca_path:{}>".format(self.attributes['key_format'], self.attributes['ca_path'])
 
     def cdict(self):
-        filename = '/etc/ssh_host_{}_key-cert.pub'.format(self.attributes.get('key_format'))
         return {
-            f'{filename} exist': True
+            f'{self.get_cert_path()} exist': True
         }
 
     def sdict(self):
-        filename = '/etc/ssh_host_{}_key-cert.pub'.format(self.attributes.get('key_format'))
-        path_info = PathInfo(self.node, filename)
+        path_info = PathInfo(self.node, self.get_cert_path())
         return {
-            f'{filename} exist': path_info.exists
+            f'{self.get_cert_path()} exist': path_info.exists
         }
 
     def display_on_create(self, cdict):
@@ -83,29 +89,33 @@ class SignHostKeys(Item):
         return sdict
 
     def fix(self, status):
-        pub_file_local = f'{gettempdir()}/ssh_host_{self.attributes.get("key_format")}_key.pub'
-        cert_file_local = f'{gettempdir()}/ssh_host_{self.attributes.get("key_format")}_key-cert.pub'
-        host_key = f'/etc/ssh/ssh_host_{self.attributes.get("key_format")}_key.pub'
-        if self.attributes.get('hostkey_file'):
-            host_key = self.attributes.get('hostkey_file')
+        tmpdir = mkdtemp()
+
+        pub_file_local = os.path.join(tmpdir, f'ssh_host_{self.attributes.get("key_format")}_key.pub')
+        cert_file_local = os.path.join(tmpdir, f'ssh_host_{self.attributes.get("key_format")}_key-cert.pub')
+        ca_file_local = os.path.join(self.node.repo.data_dir, self.attributes.get("ca_path"))
+        host_key = os.path.normpath(
+            os.path.join('/', 'etc', 'ssh', f'ssh_host_{self.attributes.get("key_format")}_key.pub')
+        )
 
         # Download host_key and save to temporary cert_file
         self.node.download(host_key, pub_file_local)
 
-        ca = PrivateKey.from_file(f'./data/{self.attributes.get("ca_path")}', password=self.attributes.get('ca_password'))
+        ca = PrivateKey.from_file(ca_file_local, password=self.attributes.get('ca_password'))
 
         pubkey = PublicKey.from_file(host_key)
         cert = SSHCertificate.create(
             subject_pubkey=pubkey,
             ca_privkey=ca,
         )
+        cert.fields.valid_after=datetime.now()
+        cert.fields.valid_before=datetime.now() + timedelta(days=self.attributes.get('days_valid'))
         cert.sign()
-
         cert.to_file(filename=cert_file_local)
 
         self.node.upload(
             cert_file_local,
-            f'/etc/ssh/ssh_host_{self.attributes.get("key_format")}_key-cert.pub',
+            self.get_cert_path(),
             '0644',
             'root',
             'root'
