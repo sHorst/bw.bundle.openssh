@@ -6,8 +6,12 @@ from tempfile import mkdtemp
 import bundlewrap.exceptions
 from bundlewrap.items import Item
 from bundlewrap.utils.remote import PathInfo
-from sshkey_tools.cert import SSHCertificate
-from sshkey_tools.keys import PrivateKey, PublicKey
+
+try:
+    from sshkey_tools.cert import SSHCertificate
+    from sshkey_tools.keys import PrivateKey, PublicKey
+except ImportError:
+    raise bundlewrap.exceptions.BundleError("Please install package sshkey-tools>=0.9 first.")
 
 
 # See https://stackoverflow.com/a/49782093
