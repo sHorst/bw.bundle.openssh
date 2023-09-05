@@ -25,14 +25,15 @@ svc_systemd = {
 }
 
 sign_host_keys = {}
-if node.metadata.get('openssh', {}).get('sign_host_keys', {}):
-    conf = node.metadata.get('openssh', {}).get('sign_host_keys', {})
+if node.metadata.get('openssh').get('sign_host_keys').get('enabled'):
+    conf = node.metadata.get('openssh', {}).get('sign_host_keys')
 
-    for key_format in conf.get('formats', ['ed25519', 'ecdsa']):
-        sign_host_keys[f'{node.hostname}_sign_ssh_{key_format}'] = {
-            'key_format': key_format,
+    for key_config in conf.get('keys').items():
+        sign_host_keys[f'{node.hostname}_sign_ssh_{key_config.get("path")}'] = {
+            'key_path': key_config.get("path"),
+            'key_format': key_config.get("format"),
             'ca_password': conf.get('ca_password'),
-            'ca_path': conf.get('ca_path', 'certs/ssh_ca'),
+            'ca_path': conf.get('ca_path'),
         }
 
 files = {
