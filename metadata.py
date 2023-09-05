@@ -1,5 +1,34 @@
 from uuid import uuid5, NAMESPACE_URL
 
+defaults = {
+    'openssh': {
+        'port': 22,
+        'additional_interfaces': [],
+        'only_allow_secure_ciphers': True,
+        'permit_root_login': False,
+        'password_auth': False,
+        'use_pam': False,
+        'gateway_ports': False,
+        'x11': False,
+        'print_motd': True,
+        'use_dns': False,
+        'sign_host_keys': {
+            'enabled': False,
+            'keys': [
+                {
+                    'path': '/etc/ssh/ssh_host_ecdsa_key.pub',
+                    'format': 'ecdsa',
+                },
+                {
+                    'path': '/etc/ssh/ssh_host_ed25519_key.pub',
+                    'format': 'ed25519',
+                }
+            ],
+            'ca_path': 'certs/ssh_ca',
+            'ca_password': '',
+        },
+    }
+}
 
 @metadata_reactor
 def add_iptables_rule(metadata):
