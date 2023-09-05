@@ -17,6 +17,13 @@ elif node.os in node.OS_FAMILY_REDHAT or node.os == 'amazonlinux':
         }
     }
 
+svc_systemd = {
+    'ssh': {
+        'enabled': True,
+        'running': True,
+    }
+}
+
 sign_host_keys = {}
 if node.metadata.get('openssh', {}).get('sign_host_keys', {}):
     conf = node.metadata.get('openssh', {}).get('sign_host_keys', {})
@@ -36,6 +43,9 @@ files = {
         'owner': "root",
         'group': "root",
         'needs': ['tag:pkg_openssh-server'],
+        'tiggers': [
+            'svc_systemd:ssh:restart',
+        ],
     }
 }
 
