@@ -20,9 +20,9 @@ Port ${node.metadata.get('openssh').get('port')}
 #ListenAddress ::
 
 % if node.metadata.get('openssh').get('sign_host_keys').get('enabled'):
-% for key_config in node.metadata.get('openssh').get('sign_host_keys').get('keys').items():
-HostKey ${key_config.get('path')}
-HostCertificate ${key_config.get('path')}
+% for host_key in node.metadata.get('openssh').get('sign_host_keys').get('keys'):
+HostKey ${host_key}
+HostCertificate ${host_key}.pub.crt
 % endfor
 % endif
 

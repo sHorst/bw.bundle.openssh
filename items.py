@@ -26,12 +26,11 @@ svc_systemd = {
 
 sign_host_keys = {}
 if node.metadata.get('openssh').get('sign_host_keys').get('enabled'):
-    conf = node.metadata.get('openssh', {}).get('sign_host_keys')
+    conf = node.metadata.get('openssh').get('sign_host_keys')
 
-    for key_config in conf.get('keys').items():
-        sign_host_keys[f'{node.hostname}_sign_ssh_{key_config.get("path")}'] = {
-            'key_path': key_config.get("path"),
-            'key_format': key_config.get("format"),
+    for host_key in conf.get('keys'):
+        sign_host_keys[f'{node.hostname}_sign_ssh_{host_key}'] = {
+            'path': host_key,
             'ca_password': conf.get('ca_password'),
             'ca_path': conf.get('ca_path'),
         }
@@ -44,7 +43,7 @@ files = {
         'owner': "root",
         'group': "root",
         'needs': ['tag:pkg_openssh-server'],
-        'tiggers': [
+        'triggers': [
             'svc_systemd:ssh:restart',
         ],
     }

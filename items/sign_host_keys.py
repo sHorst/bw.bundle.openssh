@@ -37,20 +37,20 @@ class SignHostKeys(Item):
         "pkg_zypper:",
     ]
     ITEM_ATTRIBUTES = {
-        'key_format': None,
+        'path': None,
         'ca_password': None,
         'ca_path': None,
         'days_valid': 3650,
     }
     ITEM_TYPE_NAME = "sign_host_key"
     REQUIRED_ATTRIBUTES = [
-        'key_format',
+        'path',
         'ca_password',
         'ca_path',
     ]
 
     def get_cert_path(self):
-        return os.path.join('/', 'etc', 'ssh', f'ssh_host_{self.attributes.get("key_format")}_key-cert.pub')
+        return self.attributes.get('path') + '.pub.crt'
 
     @classmethod
     def block_concurrent(cls, node_os, node_os_version):
@@ -61,7 +61,7 @@ class SignHostKeys(Item):
         return []
 
     def __repr__(self):
-        return "<Sign Host Key key_format:{} ca_path:{}>".format(self.attributes['key_format'],
+        return "<Sign Host Key path:{} ca_path:{}>".format(self.attributes['path'],
                                                                  self.attributes['ca_path'])
 
     def cdict(self):
@@ -109,11 +109,9 @@ class SignHostKeys(Item):
         tmpdir = mkdtemp()
 
         pub_file_local = os.path.join(tmpdir, f'ssh_host_{self.attributes.get("key_format")}_key.pub')
-        cert_file_local = os.path.join(tmpdir, f'ssh_host_{self.attributes.get("key_format")}_key-cert.pub')
+        cert_file_local = os.path.join(tmpdir, f'ssh_host_{self.attributes.get("key_format")}_key.pub.crt')
         ca_file_local = os.path.join(self.node.repo.data_dir, self.attributes.get("ca_path"))
-        host_key = os.path.normpath(
-            os.path.join('/', 'etc', 'ssh', f'ssh_host_{self.attributes.get("key_format")}_key.pub')
-        )
+        host_key = os.path.normpath(self.attributes["path"] + '.pub')
 
         if not os.path.exists(ca_file_local):
             raise Exception("No SSH CA file: ", ca_file_local)
@@ -126,7 +124,7 @@ class SignHostKeys(Item):
         # Download host_key and save to temporary cert_file
         self.node.download(host_key, pub_file_local)
 
-        pubkey = PublicKey.from_file(host_key)
+        pubkey = PublicKey.from_file(pub_file_local)
         cert = SSHCertificate.create(
             subject_pubkey=pubkey,
             ca_privkey=ca,

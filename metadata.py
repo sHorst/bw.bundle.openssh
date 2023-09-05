@@ -15,14 +15,8 @@ defaults = {
         'sign_host_keys': {
             'enabled': False,
             'keys': [
-                {
-                    'path': '/etc/ssh/ssh_host_ecdsa_key.pub',
-                    'format': 'ecdsa',
-                },
-                {
-                    'path': '/etc/ssh/ssh_host_ed25519_key.pub',
-                    'format': 'ed25519',
-                }
+                '/etc/ssh/ssh_host_ed25519_key',
+                '/etc/ssh/ssh_host_ecdsa_key',
             ],
             'ca_path': 'certs/ssh_ca',
             'ca_password': '',
