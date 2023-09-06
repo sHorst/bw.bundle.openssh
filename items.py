@@ -28,9 +28,8 @@ sign_host_keys = {}
 if node.metadata.get('openssh').get('sign_host_keys').get('enabled'):
     conf = node.metadata.get('openssh').get('sign_host_keys')
 
-    for host_key in conf.get('keys'):
-        sign_host_keys[f'{node.hostname}_sign_ssh_{host_key}'] = {
-            'path': host_key,
+    for key_format in conf.get('formats'):
+        sign_host_keys[f'/etc/ssh/ssh_host_{key_format}_key'] = {
             'ca_password': conf.get('ca_password'),
             'ca_path': conf.get('ca_path'),
         }

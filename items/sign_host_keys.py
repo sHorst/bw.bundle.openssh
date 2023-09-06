@@ -37,20 +37,22 @@ class SignHostKeys(Item):
         "pkg_zypper:",
     ]
     ITEM_ATTRIBUTES = {
-        'path': None,
         'ca_password': None,
         'ca_path': None,
         'days_valid': 3650,
     }
     ITEM_TYPE_NAME = "sign_host_key"
     REQUIRED_ATTRIBUTES = [
-        'path',
         'ca_password',
         'ca_path',
     ]
 
+    def get_key_path(self):
+        return self.name
     def get_cert_path(self):
-        return self.attributes.get('path') + '.pub.crt'
+        return self.get_key_path() + '.pub.crt'
+    def get_ca_path(self):
+        return self.attributes.get('ca_path')
 
     @classmethod
     def block_concurrent(cls, node_os, node_os_version):
@@ -61,8 +63,8 @@ class SignHostKeys(Item):
         return []
 
     def __repr__(self):
-        return "<Sign Host Key path:{} ca_path:{}>".format(self.attributes['path'],
-                                                                 self.attributes['ca_path'])
+        return "<Sign Host Key path:{} ca_path:{}>".format(self.get_key_path(),
+                                                                 self.get_ca_path())
 
     def cdict(self):
         return {
@@ -75,43 +77,12 @@ class SignHostKeys(Item):
             f'{self.get_cert_path()} exist': path_info.exists
         }
 
-    def display_on_create(self, cdict):
-        """
-        Given a cdict as implemented above, modify it to better suit
-        interactive presentation when an item is created. If there are
-        any when_creating attributes, they will be added to the cdict
-        before it is passed to this method.
-
-        Implementing this method is optional.
-        """
-        return cdict
-
-    def display_dicts(self, cdict, sdict, keys):
-        """
-        Given cdict and sdict as implemented above, modify them to
-        better suit interactive presentation. The keys parameter is a
-        list of keys whose values differ between cdict and sdict.
-
-        Implementing this method is optional.
-        """
-        return (cdict, sdict, keys)
-
-    def display_on_delete(self, sdict):
-        """
-        Given an sdict as implemented above, modify it to better suit
-        interactive presentation when an item is deleted.
-
-        Implementing this method is optional.
-        """
-        return sdict
-
     def fix(self, status):
-        tmpdir = mkdtemp()
+        tmpdir = mkdtemp(prefix=self.node.name)
 
-        pub_file_local = os.path.join(tmpdir, f'ssh_host_{self.attributes.get("key_format")}_key.pub')
-        cert_file_local = os.path.join(tmpdir, f'ssh_host_{self.attributes.get("key_format")}_key.pub.crt')
+        pub_file_local = os.path.join(tmpdir, f'{os.path.basename(self.get_key_path())}.pub')
+        cert_file_local = os.path.join(tmpdir, f'{os.path.basename(self.get_key_path())}.pub.crt')
         ca_file_local = os.path.join(self.node.repo.data_dir, self.attributes.get("ca_path"))
-        host_key = os.path.normpath(self.attributes["path"] + '.pub')
 
         if not os.path.exists(ca_file_local):
             raise Exception("No SSH CA file: ", ca_file_local)
@@ -122,7 +93,7 @@ class SignHostKeys(Item):
             raise bundlewrap.exceptions.BundleError("Can't decrypt SSH CA file.", e)
 
         # Download host_key and save to temporary cert_file
-        self.node.download(host_key, pub_file_local)
+        self.node.download(self.get_key_path() + '.pub', pub_file_local)
 
         pubkey = PublicKey.from_file(pub_file_local)
         cert = SSHCertificate.create(

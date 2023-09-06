@@ -14,9 +14,9 @@ defaults = {
         'use_dns': False,
         'sign_host_keys': {
             'enabled': False,
-            'keys': [
-                '/etc/ssh/ssh_host_ed25519_key',
-                '/etc/ssh/ssh_host_ecdsa_key',
+            'formats': [
+                'ed25519',
+                'ecdsa',
             ],
             'ca_path': 'certs/ssh_ca',
             'ca_password': '',
