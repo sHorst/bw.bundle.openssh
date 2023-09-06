@@ -12,6 +12,7 @@ Use signed host keys
 - Add password to your metadata (see below)
 - Link the `items/sign_host_keys.py` to your `[repo]/items` folder.
 - Install `sshkey-tools>=0.9` via `pip`.
+- Add `sshkey-tools>=0.9` to `requirements.txt`.
 - Run bundlewrap
 - Add `@cert-authority * [your SSH CA pubkey]` to `~/.ssh/known_hosts`
 
