@@ -31,17 +31,24 @@ These metadata keys are used, but all optional
     },
 },
 'openssh': {
-    'additional_interfaces': ['private'], # Optional
-    'port': 22, # Optional
-    'password_auth': False, # Optional
-    'gateway_ports': False, # Optional
+    'port': 22,
+    'additional_interfaces': [],
+    'only_allow_secure_ciphers': True,
+    'permit_root_login': False,
+    'password_auth': False,
+    'use_pam': False,
+    'gateway_ports': False,
+    'x11': False,
+    'print_motd': True,
+    'use_dns': False,
     'sign_host_keys': {
-        'ca_path': 'certs/ssh_ca', # Password protected and not encrypted by bundlewrap
-        'ca_password': 'foobar'
+        'enabled': False,
         'formats': [
             'ed25519',
             'ecdsa',
         ],
+        'ca_path': 'certs/ssh_ca',
+        'ca_password': '',
     },
 },
 ```
