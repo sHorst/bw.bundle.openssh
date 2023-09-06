@@ -3,7 +3,7 @@ OpenSSH Module
 
 This module installes Openssh. It also installes firewall rules and check_mk tasks.
 
-If you define `openssh{sign_host_key{[something]}` it will also generate signes host keys.
+If you define `openssh{sign_host_key{[something]}` it will also generate signed host keys.
 
 Use signed host keys
 -------------
