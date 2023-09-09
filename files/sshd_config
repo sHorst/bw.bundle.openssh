@@ -10,24 +10,25 @@
 # possible, but leave them commented.  Uncommented options override the
 # default value.
 
+% if node.os != node.OS_FAMILY_DEBIAN or node.os_version > 10:
 Include /etc/ssh/sshd_config.d/*.conf
-
-% if node.metadata.get('openssh', {}).get('port', False):
-Port ${node.metadata['openssh']['port']}
-% else:
-#Port 22
 % endif
+
+Port ${node.metadata.get('openssh').get('port')}
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
 
-#HostKey /etc/ssh/ssh_host_rsa_key
-#HostKey /etc/ssh/ssh_host_ecdsa_key
-#HostKey /etc/ssh/ssh_host_ed25519_key
+% if node.metadata.get('openssh').get('sign_host_keys').get('enabled'):
+% for key_format in node.metadata.get('openssh').get('sign_host_keys').get('formats'):
+HostKey /etc/ssh/ssh_host_${key_format}_key
+HostCertificate /etc/ssh/ssh_host_${key_format}_key.pub.crt
+% endfor
+% endif
 
 # Ciphers and keying
 #RekeyLimit default none
-% if node.metadata.get('openssh', {}).get('only_allow_secure_ciphers', True):
+% if node.metadata.get('openssh').get('only_allow_secure_ciphers'):
 # save algorithms ath ciphers
 KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
 Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
@@ -41,7 +42,7 @@ MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@op
 # Authentication:
 
 #LoginGraceTime 2m
-% if node.metadata.get('openssh', {}).get('permit_root_login', False):
+% if node.metadata.get('openssh').get('permit_root_login'):
 PermitRootLogin yes
 % else:
 PermitRootLogin no
@@ -69,7 +70,7 @@ AuthorizedKeysFile      %h/.ssh/authorized_keys
 #IgnoreRhosts yes
 
 # To disable tunneled clear text passwords, change to no here!
-% if node.metadata.get('openssh', {}).get('password_auth', False):
+% if node.metadata.get('openssh').get('password_auth'):
 PasswordAuthentication yes
 % else:
 PasswordAuthentication no
@@ -78,7 +79,7 @@ PasswordAuthentication no
 
 # Change to yes to enable challenge-response passwords (beware issues with
 # some PAM modules and threads)
-% if node.metadata.get('openssh', {}).get('password_auth', False):
+% if node.metadata.get('openssh').get('password_auth'):
 ChallengeResponseAuthentication yes
 % else:
 ChallengeResponseAuthentication no
@@ -106,7 +107,7 @@ ChallengeResponseAuthentication no
 # If you just want the PAM account and session checks to run without
 # PAM authentication, then enable this but set PasswordAuthentication
 # and ChallengeResponseAuthentication to 'no'.
-% if node.metadata.get('openssh', {}).get('use_pam', False):
+% if node.metadata.get('openssh').get('use_pam'):
 UsePAM yes
 % else:
 UsePAM no
@@ -115,12 +116,12 @@ UsePAM no
 
 #AllowAgentForwarding yes
 #AllowTcpForwarding yes
-% if node.metadata.get('openssh', {}).get('gateway_ports', False):
+% if node.metadata.get('openssh').get('gateway_ports'):
 GatewayPorts yes
 % else:
 #GatewayPorts no
 % endif
-% if node.metadata.get('openssh', {}).get('x11', False):
+% if node.metadata.get('openssh').get('x11'):
 X11Forwarding yes
 % else:
 X11Forwarding no
@@ -128,7 +129,7 @@ X11Forwarding no
 #X11DisplayOffset 10
 #X11UseLocalhost yes
 #PermitTTY yes
-% if node.metadata.get('openssh', {}).get('print_motd', True):
+% if node.metadata.get('openssh').get('print_motd'):
 PrintMotd yes
 % else:
 PrintMotd no
@@ -139,7 +140,7 @@ PrintMotd no
 #Compression delayed
 #ClientAliveInterval 0
 #ClientAliveCountMax 3
-% if node.metadata.get('openssh', {}).get('use_dns', False):
+% if node.metadata.get('openssh').get('use_dns'):
 UseDNS yes
 % else:
 #UseDNS no

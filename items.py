@@ -1,10 +1,8 @@
-
 def sort_pubkey(key):
     try:
         return key.split(' ')[2]
     except IndexError:
         return key
-
 
 if node.os in node.OS_FAMILY_DEBIAN:
     pkg_apt = {
@@ -19,6 +17,23 @@ elif node.os in node.OS_FAMILY_REDHAT or node.os == 'amazonlinux':
         }
     }
 
+svc_systemd = {
+    'ssh': {
+        'enabled': True,
+        'running': True,
+    }
+}
+
+sign_host_keys = {}
+if node.metadata.get('openssh').get('sign_host_keys').get('enabled'):
+    conf = node.metadata.get('openssh').get('sign_host_keys')
+
+    for key_format in conf.get('formats'):
+        sign_host_keys[f'/etc/ssh/ssh_host_{key_format}_key'] = {
+            'ca_password': conf.get('ca_password'),
+            'ca_path': conf.get('ca_path'),
+        }
+
 files = {
     "/etc/ssh/sshd_config": {
         'source': "sshd_config",
@@ -27,6 +42,9 @@ files = {
         'owner': "root",
         'group': "root",
         'needs': ['tag:pkg_openssh-server'],
+        'triggers': [
+            'svc_systemd:ssh:restart',
+        ],
     }
 }
 
