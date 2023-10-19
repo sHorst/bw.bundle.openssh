@@ -99,7 +99,9 @@ class SignHostKeys(Item):
         cert = SSHCertificate.create(
             subject_pubkey=pubkey,
             ca_privkey=ca,
+
         )
+        cert.fields.cert_type = 2
         cert.fields.valid_after = datetime.now()
         cert.fields.valid_before = datetime.now() + timedelta(days=self.attributes.get('days_valid'))
         cert.sign()
