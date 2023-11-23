@@ -10,7 +10,7 @@
 # possible, but leave them commented.  Uncommented options override the
 # default value.
 
-% if node.os != node.OS_FAMILY_DEBIAN or node.os_version > 10:
+% if not node.os in node.OS_FAMILY_DEBIAN or (node.os == 'debian' and node.os_version[0] > 10):
 Include /etc/ssh/sshd_config.d/*.conf
 % endif
 
