@@ -6,6 +6,7 @@ defaults = {
         'additional_interfaces': [],
         'only_allow_secure_ciphers': True,
         'permit_root_login': False,
+        'permit_root_login_prohibit_password': False,
         'password_auth': False,
         'use_pam': False,
         'gateway_ports': False,
