@@ -32,6 +32,11 @@ if node.metadata.get('openssh').get('sign_host_keys').get('enabled'):
         sign_host_keys[f'/etc/ssh/ssh_host_{key_format}_key'] = {
             'ca_password': conf.get('ca_password'),
             'ca_path': conf.get('ca_path'),
+            'days_valid': conf.get('days_valid'),
+            'renew_days': conf.get('renew_days'),
+            'triggers': [
+                'svc_systemd:ssh:restart',
+            ]
         }
 
 files = {

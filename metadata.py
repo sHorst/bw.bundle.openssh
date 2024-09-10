@@ -21,6 +21,8 @@ defaults = {
             ],
             'ca_path': 'certs/ssh_ca',
             'ca_password': '',
+            'days_valid': 365,
+            'renew_days': 90,
         },
     }
 }
