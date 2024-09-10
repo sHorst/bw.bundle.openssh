@@ -50,6 +50,8 @@ These metadata keys are used, but all optional
         ],
         'ca_path': 'certs/ssh_ca',
         'ca_password': '',
+        'days_valid': 365,
+        'renew_days': 90,
     },
 },
 ```
