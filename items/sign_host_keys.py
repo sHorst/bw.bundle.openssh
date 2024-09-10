@@ -104,8 +104,8 @@ class SignHostKeys(Item):
             ca_privkey=self.load_ca_private_key(),
         )
         cert.fields.cert_type = 2
-        cert.fields.valid_after = datetime.now()
-        cert.fields.valid_before = datetime.now() + timedelta(days=self.attributes.get('days_valid'))
+        cert.fields.valid_after = datetime.utcnow()
+        cert.fields.valid_before = datetime.utcnow() + timedelta(days=self.attributes.get('days_valid'))
         cert.sign()
         cert.to_file(filename=cert_file_local)
 
