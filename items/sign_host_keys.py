@@ -40,6 +40,7 @@ class SignHostKeys(Item):
         'ca_password': None,
         'ca_path': None,
         'days_valid': 3650,
+        'renew_days': 365,
     }
     ITEM_TYPE_NAME = "sign_host_key"
     REQUIRED_ATTRIBUTES = [
@@ -76,18 +77,40 @@ class SignHostKeys(Item):
 
     def __repr__(self):
         return "<Sign Host Key path:{} ca_path:{}>".format(self.get_key_path(),
-                                                                 self.get_ca_path())
+                                                           self.get_ca_path())
 
     def cdict(self):
         return {
-            f'{self.get_cert_path()} exist': True
+            f'{self.get_cert_path()} exist': True,
+            f'{self.get_key_path()} valid for CA {self.get_ca_path()}': True,
+            f'{self.get_cert_path()} valid for the next {self.attributes.get("renew_days")}+ days': True,
+
         }
 
     def sdict(self):
-        path_info = PathInfo(self.node, self.get_cert_path())
-        return {
-            f'{self.get_cert_path()} exist': path_info.exists
+        current_state = {
+            f'{self.get_cert_path()} exist': False,
+            f'{self.get_key_path()} valid for CA {self.get_ca_path()}': False,
+            f'{self.get_cert_path()} valid for the next {self.attributes.get("renew_days")}+ days': False,
         }
+        path_info = PathInfo(self.node, self.get_cert_path())
+        if path_info.exists:
+            current_state[f'{self.get_cert_path()} exist'] = True
+
+            # get current certificate
+            tmp_crt_file = os.path.join(mkdtemp(prefix=self.node.name), os.path.basename(self.get_cert_path()))
+            self.node.download(self.get_cert_path(), tmp_crt_file)
+            certificate = SSHCertificate.from_file(tmp_crt_file)
+
+            # Check if certificate is signed by same CA
+            ca = self.load_ca_private_key()
+            current_state[f'{self.get_key_path()} valid for CA {self.get_ca_path()}'] = certificate.verify(ca.public_key, False)
+
+            # Get current expire date
+            remaining_days = certificate.get('valid_before') - datetime.utcnow()
+            current_state[f'{self.get_cert_path()} valid for the next {self.attributes.get("renew_days")}+ days'] = remaining_days.days >= self.attributes.get('renew_days')
+
+        return current_state
 
     def fix(self, status):
         tmpdir = mkdtemp(prefix=self.node.name)
