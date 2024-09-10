@@ -49,10 +49,22 @@ class SignHostKeys(Item):
 
     def get_key_path(self):
         return self.name
+
     def get_cert_path(self):
         return self.get_key_path() + '.pub.crt'
+
     def get_ca_path(self):
         return self.attributes.get('ca_path')
+
+    def load_ca_private_key(self) -> PrivateKey:
+        ca_file_local = os.path.join(self.node.repo.data_dir, self.attributes.get("ca_path"))
+        if not os.path.exists(ca_file_local):
+            raise Exception("No SSH CA file: ", ca_file_local)
+
+        try:
+            return PrivateKey.from_file(str(ca_file_local), password=self.attributes.get('ca_password'))
+        except Exception as e:
+            raise bundlewrap.exceptions.BundleError("Can't decrypt SSH CA file.", e)
 
     @classmethod
     def block_concurrent(cls, node_os, node_os_version):
@@ -82,15 +94,6 @@ class SignHostKeys(Item):
 
         pub_file_local = os.path.join(tmpdir, f'{os.path.basename(self.get_key_path())}.pub')
         cert_file_local = os.path.join(tmpdir, f'{os.path.basename(self.get_key_path())}.pub.crt')
-        ca_file_local = os.path.join(self.node.repo.data_dir, self.attributes.get("ca_path"))
-
-        if not os.path.exists(ca_file_local):
-            raise Exception("No SSH CA file: ", ca_file_local)
-
-        try:
-            ca = PrivateKey.from_file(ca_file_local, password=self.attributes.get('ca_password'))
-        except Exception as e:
-            raise bundlewrap.exceptions.BundleError("Can't decrypt SSH CA file.", e)
 
         # Download host_key and save to temporary cert_file
         self.node.download(self.get_key_path() + '.pub', pub_file_local)
@@ -98,8 +101,7 @@ class SignHostKeys(Item):
         pubkey = PublicKey.from_file(pub_file_local)
         cert = SSHCertificate.create(
             subject_pubkey=pubkey,
-            ca_privkey=ca,
-
+            ca_privkey=self.load_ca_private_key(),
         )
         cert.fields.cert_type = 2
         cert.fields.valid_after = datetime.now()
