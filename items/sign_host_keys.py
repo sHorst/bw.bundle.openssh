@@ -40,6 +40,7 @@ class SignHostKeys(Item):
         'ca_password': None,
         'ca_path': None,
         'days_valid': 3650,
+        'renew_days': 365,
     }
     ITEM_TYPE_NAME = "sign_host_key"
     REQUIRED_ATTRIBUTES = [
@@ -49,10 +50,22 @@ class SignHostKeys(Item):
 
     def get_key_path(self):
         return self.name
+
     def get_cert_path(self):
         return self.get_key_path() + '.pub.crt'
+
     def get_ca_path(self):
         return self.attributes.get('ca_path')
+
+    def load_ca_private_key(self) -> PrivateKey:
+        ca_file_local = os.path.join(self.node.repo.data_dir, self.attributes.get("ca_path"))
+        if not os.path.exists(ca_file_local):
+            raise Exception("No SSH CA file: ", ca_file_local)
+
+        try:
+            return PrivateKey.from_file(str(ca_file_local), password=self.attributes.get('ca_password'))
+        except Exception as e:
+            raise bundlewrap.exceptions.BundleError("Can't decrypt SSH CA file.", e)
 
     @classmethod
     def block_concurrent(cls, node_os, node_os_version):
@@ -64,33 +77,46 @@ class SignHostKeys(Item):
 
     def __repr__(self):
         return "<Sign Host Key path:{} ca_path:{}>".format(self.get_key_path(),
-                                                                 self.get_ca_path())
+                                                           self.get_ca_path())
 
     def cdict(self):
         return {
-            f'{self.get_cert_path()} exist': True
+            f'{self.get_cert_path()} exist': True,
+            f'{self.get_key_path()} valid for CA {self.get_ca_path()}': True,
+            f'{self.get_cert_path()} valid for the next {self.attributes.get("renew_days")}+ days': True,
+
         }
 
     def sdict(self):
-        path_info = PathInfo(self.node, self.get_cert_path())
-        return {
-            f'{self.get_cert_path()} exist': path_info.exists
+        current_state = {
+            f'{self.get_cert_path()} exist': False,
+            f'{self.get_key_path()} valid for CA {self.get_ca_path()}': False,
+            f'{self.get_cert_path()} valid for the next {self.attributes.get("renew_days")}+ days': False,
         }
+        path_info = PathInfo(self.node, self.get_cert_path())
+        if path_info.exists:
+            current_state[f'{self.get_cert_path()} exist'] = True
+
+            # get current certificate
+            tmp_crt_file = os.path.join(mkdtemp(prefix=self.node.name), os.path.basename(self.get_cert_path()))
+            self.node.download(self.get_cert_path(), tmp_crt_file)
+            certificate = SSHCertificate.from_file(tmp_crt_file)
+
+            # Check if certificate is signed by same CA
+            ca = self.load_ca_private_key()
+            current_state[f'{self.get_key_path()} valid for CA {self.get_ca_path()}'] = certificate.verify(ca.public_key, False)
+
+            # Get current expire date
+            remaining_days = certificate.get('valid_before') - datetime.utcnow()
+            current_state[f'{self.get_cert_path()} valid for the next {self.attributes.get("renew_days")}+ days'] = remaining_days.days >= self.attributes.get('renew_days')
+
+        return current_state
 
     def fix(self, status):
         tmpdir = mkdtemp(prefix=self.node.name)
 
         pub_file_local = os.path.join(tmpdir, f'{os.path.basename(self.get_key_path())}.pub')
         cert_file_local = os.path.join(tmpdir, f'{os.path.basename(self.get_key_path())}.pub.crt')
-        ca_file_local = os.path.join(self.node.repo.data_dir, self.attributes.get("ca_path"))
-
-        if not os.path.exists(ca_file_local):
-            raise Exception("No SSH CA file: ", ca_file_local)
-
-        try:
-            ca = PrivateKey.from_file(ca_file_local, password=self.attributes.get('ca_password'))
-        except Exception as e:
-            raise bundlewrap.exceptions.BundleError("Can't decrypt SSH CA file.", e)
 
         # Download host_key and save to temporary cert_file
         self.node.download(self.get_key_path() + '.pub', pub_file_local)
@@ -98,12 +124,11 @@ class SignHostKeys(Item):
         pubkey = PublicKey.from_file(pub_file_local)
         cert = SSHCertificate.create(
             subject_pubkey=pubkey,
-            ca_privkey=ca,
-
+            ca_privkey=self.load_ca_private_key(),
         )
         cert.fields.cert_type = 2
-        cert.fields.valid_after = datetime.now()
-        cert.fields.valid_before = datetime.now() + timedelta(days=self.attributes.get('days_valid'))
+        cert.fields.valid_after = datetime.utcnow()
+        cert.fields.valid_before = datetime.utcnow() + timedelta(days=self.attributes.get('days_valid'))
         cert.sign()
         cert.to_file(filename=cert_file_local)
 
