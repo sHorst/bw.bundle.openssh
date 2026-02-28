@@ -3,7 +3,11 @@
 # This is the sshd server system-wide configuration file.  See
 # sshd_config(5) for more information.
 
+% if node.os == 'debian' and node.os_version[0] > 12:
+# This sshd was compiled with PATH=/usr/local/bin:/usr/bin:/bin:/usr/games
+% else:
 # This sshd was compiled with PATH=/usr/bin:/bin:/usr/sbin:/sbin
+% endif
 
 # The strategy used for options in the default sshd_config shipped with
 # OpenSSH is to specify options with their default value where
@@ -24,13 +28,21 @@ Port ${node.metadata.get('openssh').get('port')}
 HostKey /etc/ssh/ssh_host_${key_format}_key
 HostCertificate /etc/ssh/ssh_host_${key_format}_key.pub.crt
 % endfor
+% else:
+#HostKey /etc/ssh/ssh_host_rsa_key
+#HostKey /etc/ssh/ssh_host_ecdsa_key
+#HostKey /etc/ssh/ssh_host_ed25519_key
 % endif
 
 # Ciphers and keying
 #RekeyLimit default none
 % if node.metadata.get('openssh').get('only_allow_secure_ciphers'):
 # save algorithms ath ciphers
+% if node.os == 'debian' and node.os_version[0] > 12:
+KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512,curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+% else:
 KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+% endif
 Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
 MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
 % endif
@@ -79,6 +91,17 @@ PasswordAuthentication no
 % endif
 #PermitEmptyPasswords no
 
+% if node.os == 'debian' and node.os_version[0] > 12:
+# Change to "yes" to enable keyboard-interactive authentication.  Depending on
+# the system's configuration, this may involve passwords, challenge-response,
+# one-time passwords or some combination of these and other methods.
+# Beware issues with some PAM modules and threads.
+% if node.metadata.get('openssh').get('password_auth'):
+KbdInteractiveAuthentication yes
+% else:
+KbdInteractiveAuthentication no
+% endif
+% else:
 # Change to yes to enable challenge-response passwords (beware issues with
 # some PAM modules and threads)
 % if node.metadata.get('openssh').get('password_auth'):
@@ -86,7 +109,7 @@ ChallengeResponseAuthentication yes
 % else:
 ChallengeResponseAuthentication no
 % endif
-
+% endif
 
 # Kerberos options
 #KerberosAuthentication no
@@ -100,6 +123,17 @@ ChallengeResponseAuthentication no
 #GSSAPIStrictAcceptorCheck yes
 #GSSAPIKeyExchange no
 
+% if node.os == 'debian' and node.os_version[0] > 12:
+# Set this to 'yes' to enable PAM authentication, account processing,
+# and session processing. If this is enabled, PAM authentication will
+# be allowed through the KbdInteractiveAuthentication and
+# PasswordAuthentication.  Depending on your PAM configuration,
+# PAM authentication via KbdInteractiveAuthentication may bypass
+# the setting of "PermitRootLogin prohibit-password".
+# If you just want the PAM account and session checks to run without
+# PAM authentication, then enable this but set PasswordAuthentication
+# and KbdInteractiveAuthentication to 'no'.
+% else:
 # Set this to 'yes' to enable PAM authentication, account processing,
 # and session processing. If this is enabled, PAM authentication will
 # be allowed through the ChallengeResponseAuthentication and
@@ -109,12 +143,12 @@ ChallengeResponseAuthentication no
 # If you just want the PAM account and session checks to run without
 # PAM authentication, then enable this but set PasswordAuthentication
 # and ChallengeResponseAuthentication to 'no'.
+% endif
 % if node.metadata.get('openssh').get('use_pam'):
 UsePAM yes
 % else:
 UsePAM no
 % endif
-
 
 #AllowAgentForwarding yes
 #AllowTcpForwarding yes
@@ -147,7 +181,11 @@ UseDNS yes
 % else:
 #UseDNS no
 % endif
+% if node.os == 'debian' and node.os_version[0] > 12:
+#PidFile /run/sshd.pid
+% else:
 #PidFile /var/run/sshd.pid
+% endif
 #MaxStartups 10:30:100
 #PermitTunnel no
 #ChrootDirectory none
@@ -156,8 +194,13 @@ UseDNS yes
 # no default banner path
 #Banner none
 
+% if node.os == 'debian' and node.os_version[0] > 12:
+# Allow client to pass locale and color environment variables
+AcceptEnv LANG LC_* COLORTERM NO_COLOR
+% else:
 # Allow client to pass locale environment variables
 AcceptEnv LANG LC_*
+% endif
 
 # override default of no subsystems
 % if node.in_group("ubuntu"):
